@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MedScript — verification-first prescription reader</title>
+<style>
+  :root{
+    --ink:#0b0f14; --ink-2:#3f4a56; --ink-3:#6b7683;
+    --bg:#f6f6f4; --card:#ffffff; --line:#e6e4df;
+    --accent:#0e7a5f; --accent-ink:#0a5c48;
+    --warn:#b45309; --warn-bg:#fdf6ec; --warn-line:#e8c79a;
+    --ok:#15803d; --ok-bg:#f0faf3;
+    --radius:16px;
+    --shadow:0 1px 2px rgba(11,15,20,.04), 0 8px 24px rgba(11,15,20,.05);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;}
+  html{-webkit-text-size-adjust:100%;}
+  body{background:var(--bg);color:var(--ink);min-height:100vh;font-size:15px;line-height:1.55;}
+  header{background:rgba(255,255,255,.86);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;}
+  .hwrap{max-width:880px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+  .brand{display:flex;align-items:center;gap:10px;}
+  .brand svg{flex:none;}
+  .brand h1{font-size:18px;font-weight:700;letter-spacing:-.02em;}
+  .brand .tag{font-size:12px;color:var(--ink-3);letter-spacing:.01em;}
+  .btn{display:inline-flex;align-items:center;gap:8px;border-radius:10px;padding:11px 16px;font-size:14px;font-weight:600;cursor:pointer;border:1px solid transparent;transition:background .15s ease,border-color .15s ease,transform .05s ease;}
+  .btn:active{transform:translateY(1px);}
+  .btn-primary{background:var(--ink);color:#fff;}
+  .btn-primary:hover{background:#1c2530;}
+  .btn-ghost{background:#fff;color:var(--ink);border-color:var(--line);}
+  .btn-ghost:hover{border-color:#c9c6bf;}
+  .btn-sm{padding:8px 12px;font-size:13px;}
+  main{max-width:880px;margin:0 auto;padding:24px 20px 64px;}
+  .step{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px;margin-bottom:20px;}
+  .steplabel{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-ink);margin-bottom:6px;}
+  .step h2{font-size:17px;font-weight:700;letter-spacing:-.01em;margin-bottom:14px;}
+  .btnrow{display:flex;gap:10px;flex-wrap:wrap;}
+  #camWrap{position:relative;margin-top:16px;display:none;border-radius:12px;overflow:hidden;background:#000;}
+  #video{width:100%;display:block;}
+  #coachBanner{position:absolute;top:0;left:0;right:0;padding:12px 14px;text-align:center;font-size:16px;font-weight:700;letter-spacing:.02em;color:#fff;background:rgba(11,15,20,.62);min-height:46px;}
+  #coachBanner.good{background:var(--ok);}
+  #coachBanner.warn{background:var(--warn);}
+  #metrics{position:absolute;bottom:0;left:0;right:0;padding:8px 12px;display:flex;gap:16px;justify-content:center;background:rgba(11,15,20,.55);color:#d7dbe0;font-size:11px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.02em;}
+  #captureBtn{position:absolute;bottom:46px;left:50%;transform:translateX(-50%);width:62px;height:62px;border-radius:50%;border:3px solid #fff;background:rgba(255,255,255,.18);cursor:pointer;transition:background .15s;}
+  #captureBtn:hover{background:rgba(255,255,255,.34);}
+  #status{font-size:13px;color:var(--ink-3);margin-top:12px;min-height:20px;}
+  .ba{display:flex;gap:12px;margin:4px 0 8px;}
+  .ba figure{flex:1;min-width:0;}
+  .ba img{width:100%;border-radius:10px;border:1px solid var(--line);display:block;}
+  .ba figcaption{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);text-align:center;margin-top:6px;}
+  .flag{background:var(--warn-bg);border:1px solid var(--warn-line);border-left:4px solid var(--warn);border-radius:10px;padding:10px 14px;margin:8px 0;font-size:14px;color:#5b3a10;}
+  .flag b{color:var(--warn);}
+  .flag.okflag{background:var(--ok-bg);border-color:#bfe3cd;border-left-color:var(--ok);color:#14532d;}
+  .flag.okflag b{color:var(--ok);}
+  .plan-group{margin:14px 0 4px;}
+  .plan-group h3{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--accent-ink);margin-bottom:8px;}
+  .med{border:1px solid var(--line);border-radius:10px;padding:11px 14px;margin:6px 0;font-size:15px;background:#fcfcfb;}
+  .med .conf{float:right;font-size:11px;color:var(--ink-3);font-family:ui-monospace,Menlo,monospace;padding-top:3px;}
+  .disclaimer{background:#f1f0ec;border-radius:10px;padding:12px 14px;font-size:13px;color:var(--ink-2);margin-top:16px;}
+  .disclaimer b{color:var(--ink);}
+  .lines{font-size:12.5px;color:var(--ink-2);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#fafaf8;border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:8px;white-space:pre-wrap;}
+  .modal{display:none;position:fixed;inset:0;background:rgba(11,15,20,.45);z-index:10;align-items:center;justify-content:center;padding:20px;}
+  .modal.open{display:flex;}
+  .modal .box{background:#fff;border-radius:var(--radius);padding:24px;max-width:460px;width:100%;box-shadow:0 24px 64px rgba(11,15,20,.25);}
+  .modal h2{font-size:16px;margin-bottom:6px;}
+  .modal input{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;margin:8px 0 16px;font-size:14px;background:#fcfcfb;}
+  .modal input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent;}
+  .modal label{font-size:12px;color:var(--ink-2);font-weight:700;letter-spacing:.04em;text-transform:uppercase;}
+  .keynote{font-size:12.5px;color:var(--ink-3);margin-bottom:14px;}
+  #keyStatus{font-size:13px;margin-top:10px;color:var(--ink-3);min-height:18px;}
+  @media (max-width:560px){ .ba{flex-direction:column;} .hwrap{padding:12px 14px;} main{padding:16px 14px 48px;} }
+</style>
+</head>
+<body>
+<header>
+  <div class="hwrap">
+    <div class="brand">
+      <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden="true">
+        <rect x="1" y="1" width="24" height="24" rx="7" fill="#0e7a5f"/>
+        <path d="M5 13h4l2-5 3 10 2-5h5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div>
+        <h1>MedScript</h1>
+        <div class="tag">Verification-first prescription reader</div>
+      </div>
+    </div>
+    <button class="btn btn-ghost btn-sm" id="settingsBtn">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Settings
+    </button>
+  </div>
+</header>
+<main>
+  <section class="step">
+    <div class="steplabel">Step 1</div>
+    <h2>Capture the prescription</h2>
+    <div class="btnrow">
+      <button class="btn btn-primary" id="camBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        Use camera with coach
+      </button>
+      <button class="btn btn-ghost" id="uploadBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        Upload photo
+      </button>
+      <button class="btn btn-ghost" id="sampleBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2v7L4 20a2 2 0 0 0 2 3h12a2 2 0 0 0 2-3L14 9V2"/><path d="M8 2h8"/></svg>
+        Try sample Rx
+      </button>
+      <input type="file" id="fileInput" accept="image/*" style="display:none">
+    </div>
+    <div id="camWrap">
+      <video id="video" autoplay playsinline muted></video>
+      <div id="coachBanner">Starting camera</div>
+      <button id="captureBtn" title="Capture" aria-label="Capture"></button>
+      <div id="metrics"><span id="mBlur">blur: –</span><span id="mLight">light: –</span><span id="mFill">fill: –</span></div>
+    </div>
+    <div id="status"></div>
+  </section>
+
+  <section class="step" id="resultCard" style="display:none">
+    <div class="steplabel">Step 2</div>
+    <h2>Enhanced image</h2>
+    <div class="ba">
+      <figure><img id="beforeImg" alt="Original photo"><figcaption>Original</figcaption></figure>
+      <figure><img id="afterImg" alt="Enhanced image"><figcaption>Enhanced</figcaption></figure>
+    </div>
+    <div class="steplabel" style="margin-top:18px">Step 3</div>
+    <h2>Verified medicine plan — draft</h2>
+    <div id="flags"></div>
+    <div id="plan"></div>
+    <div class="steplabel" style="margin-top:18px">Raw transcription</div>
+    <div class="lines" id="rawLines"></div>
+    <div class="disclaimer"><b>Draft for verification only.</b> MedScript transcribes what a photo shows. It does not diagnose and does not give medical advice. Confirm every item with your doctor or pharmacist — especially anything flagged above.</div>
+  </section>
+</main>
+
+<div class="modal" id="settingsModal">
+  <div class="box">
+    <h2>Settings — bring your own key</h2>
+    <div class="keynote">Your Gemini API key stays in this browser (localStorage) and is sent only to Google's Gemini API. No server stores it.</div>
+    <label for="keyInput">Gemini API key</label>
+    <input type="password" id="keyInput" placeholder="AIza…" autocomplete="off">
+    <label for="modelInput">Model</label>
+    <input type="text" id="modelInput" placeholder="gemini-2.5-flash">
+    <div class="btnrow">
+      <button class="btn btn-primary btn-sm" id="testKeyBtn">Test key</button>
+      <button class="btn btn-ghost btn-sm" id="saveKeyBtn">Save</button>
+      <button class="btn btn-ghost btn-sm" id="closeSettings">Close</button>
+    </div>
+    <div id="keyStatus"></div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
